@@ -34,6 +34,9 @@ defmodule DeoxysII do
   @tweak_size 16
   @tag_size 16
   def tag_size(), do: @tag_size
+  @nonce_size 15
+  def nonce_size(), do: @nonce_size
+  def random_nonce(), do: :crypto.strong_rand_bytes(@nonce_size)
   @stk_size 16
   @stk_count @rounds + 1
 
@@ -281,7 +284,7 @@ defmodule DeoxysII do
   ```elixir
   # Create a new DeoxysII instance with a 32-byte key
   iex> key = Base.decode16!("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f", case: :lower)
-  iex> nonce = Base.decode16!("000102030405060708090a0b0c0d0e0f", case: :lower)
+  iex> nonce = DeoxysII.random_nonce()
   iex> ad = Base.decode16!("000102030405060708090a0b0c0d0e0f", case: :lower)
   iex> msg = Base.decode16!("000102030405060708090a0b0c0d0e0f", case: :lower)
   iex> x = DeoxysII.new(key)
@@ -291,13 +294,13 @@ defmodule DeoxysII do
   ```
   """
   def encrypt(%__MODULE__{} = self, nonce, ad, msg)
-      when is_binary(nonce) and (is_binary(ad) or is_nil(ad)) and (is_binary(msg) or is_nil(msg)) do
+      when byte_size(nonce) == @nonce_size and (is_binary(ad) or is_nil(ad)) and (is_binary(msg) or is_nil(msg)) do
     # Extracting to another process because of ByteArray state garbage
     isolate(fn -> do_encrypt(self, nonce, ad, msg) end)
   end
 
   defp do_encrypt(%__MODULE__{} = self, nonce, ad, msg)
-       when is_binary(nonce) and (is_binary(ad) or is_nil(ad)) and (is_binary(msg) or is_nil(msg)) do
+       when byte_size(nonce) == @nonce_size and (is_binary(ad) or is_nil(ad)) and (is_binary(msg) or is_nil(msg)) do
     tweak = ByteArray.new(@tweak_size)
     tmp = ByteArray.new(@block_size)
     dst = ByteArray.new(0)
@@ -443,7 +446,7 @@ defmodule DeoxysII do
   # Encrypt and then decrypt a message with associated data
   iex> key = <<0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f,
   ...>         0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f>>
-  iex> nonce = <<0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e>>
+  iex> nonce = DeoxysII.random_nonce()
   iex> ad = <<0x00, 0x01, 0x02>>
   iex> msg = <<0x10, 0x11, 0x12>>
   iex> deoxys = DeoxysII.new(key)
@@ -453,13 +456,13 @@ defmodule DeoxysII do
   ```
   """
   def decrypt(%__MODULE__{} = self, nonce, ad, ciphertext)
-      when is_binary(nonce) and (is_binary(ad) or is_nil(ad)) and is_binary(ciphertext) do
+      when byte_size(nonce) == @nonce_size and (is_binary(ad) or is_nil(ad)) and is_binary(ciphertext) do
     # Extracting to another process because of ByteArray state garbage
     isolate(fn -> do_decrypt(self, nonce, ad, ciphertext) end)
   end
 
   defp do_decrypt(%__MODULE__{} = self, nonce, ad, ciphertext)
-       when is_binary(nonce) and (is_binary(ad) or is_nil(ad)) and is_binary(ciphertext) do
+       when byte_size(nonce) == @nonce_size and (is_binary(ad) or is_nil(ad)) and is_binary(ciphertext) do
     dst = ByteArray.new(0)
 
     # Split out ct into ciphertext and tag.
