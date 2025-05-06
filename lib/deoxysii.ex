@@ -294,13 +294,15 @@ defmodule DeoxysII do
   ```
   """
   def encrypt(%__MODULE__{} = self, nonce, ad, msg)
-      when byte_size(nonce) == @nonce_size and (is_binary(ad) or is_nil(ad)) and (is_binary(msg) or is_nil(msg)) do
+      when byte_size(nonce) == @nonce_size and (is_binary(ad) or is_nil(ad)) and
+             (is_binary(msg) or is_nil(msg)) do
     # Extracting to another process because of ByteArray state garbage
     isolate(fn -> do_encrypt(self, nonce, ad, msg) end)
   end
 
   defp do_encrypt(%__MODULE__{} = self, nonce, ad, msg)
-       when byte_size(nonce) == @nonce_size and (is_binary(ad) or is_nil(ad)) and (is_binary(msg) or is_nil(msg)) do
+       when byte_size(nonce) == @nonce_size and (is_binary(ad) or is_nil(ad)) and
+              (is_binary(msg) or is_nil(msg)) do
     tweak = ByteArray.new(@tweak_size)
     tmp = ByteArray.new(@block_size)
     dst = ByteArray.new(0)
@@ -456,13 +458,15 @@ defmodule DeoxysII do
   ```
   """
   def decrypt(%__MODULE__{} = self, nonce, ad, ciphertext)
-      when byte_size(nonce) == @nonce_size and (is_binary(ad) or is_nil(ad)) and is_binary(ciphertext) do
+      when byte_size(nonce) == @nonce_size and (is_binary(ad) or is_nil(ad)) and
+             is_binary(ciphertext) do
     # Extracting to another process because of ByteArray state garbage
     isolate(fn -> do_decrypt(self, nonce, ad, ciphertext) end)
   end
 
   defp do_decrypt(%__MODULE__{} = self, nonce, ad, ciphertext)
-       when byte_size(nonce) == @nonce_size and (is_binary(ad) or is_nil(ad)) and is_binary(ciphertext) do
+       when byte_size(nonce) == @nonce_size and (is_binary(ad) or is_nil(ad)) and
+              is_binary(ciphertext) do
     dst = ByteArray.new(0)
 
     # Split out ct into ciphertext and tag.
@@ -582,7 +586,11 @@ defmodule DeoxysII do
   end
 
   defp hmac_compare_digest(a, b) do
-    :crypto.hash_equals(ByteArray.pop(a), ByteArray.pop(b))
+    if function_exported?(:crypto, :hash_equals, 2) do
+      apply(:crypto, :hash_equals, [ByteArray.pop(a), ByteArray.pop(b)])
+    else
+      ByteArray.pop(a) == ByteArray.pop(b)
+    end
   end
 
   defp derive_sub_tweak_keys(derived_k, t) do
