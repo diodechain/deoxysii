@@ -1,7 +1,7 @@
 defmodule Deoxysii.MixProject do
   use Mix.Project
 
-  @version "1.0.2"
+  @version "1.0.3"
   @name "DeoxysII"
   @url "https://github.com/diodechain/deoxysii"
   @maintainers ["Dominic Letz"]
