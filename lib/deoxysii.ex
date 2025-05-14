@@ -586,16 +586,19 @@ defmodule DeoxysII do
   end
 
   defp hmac_compare_digest(a, b) do
+    a = ByteArray.pop(a)
+    b = ByteArray.pop(b)
+
     if function_exported?(:crypto, :hash_equals, 2) do
       try do
-        apply(:crypto, :hash_equals, [ByteArray.pop(a), ByteArray.pop(b)])
+        apply(:crypto, :hash_equals, [a, b])
       rescue
         # Still can throw "Unsupported CRYPTO_memcmp"
         ErlangError ->
-          ByteArray.pop(a) == ByteArray.pop(b)
+          a == b
       end
     else
-      ByteArray.pop(a) == ByteArray.pop(b)
+      a == b
     end
   end
 
